@@ -68,7 +68,7 @@
             color: #b9bbbe;
         }
 
-        input[type="text"] {
+        input[type="text"], input[type="password"] {
             width: 100%;
             padding: 12px;
             border-radius: 6px;
@@ -81,7 +81,7 @@
             transition: border-color 0.2s;
         }
 
-        input[type="text"]:focus {
+        input[type="text"]:focus, input[type="password"]:focus {
             border-color: var(--accent-color);
         }
 
@@ -166,7 +166,12 @@
         <div id="sezione-operativa" class="hidden">
             <div class="status-box" style="border-color: var(--success-color); background-color: rgba(36, 128, 70, 0.1);">
                 <strong>Collegato con successo!</strong><br>
-                Pronto a clonare la struttura dei canali in automatico.
+                Inserisci i dati richiesti sotto per procedere.
+            </div>
+
+            <div class="form-group">
+                <label for="bot-token">Token del Bot (Destinazione)</label>
+                <input type="password" id="bot-token" placeholder="Incolla qui il Token del tuo Bot">
             </div>
 
             <div class="form-group">
@@ -185,16 +190,13 @@
         </div>
 
         <div class="note">
-            Processo 100% automatizzato via browser tramite OAuth2 e Bot dedicato.
+            Processo 100% sicuro. Il token inserito rimane solo nel tuo browser e non viene salvato online.
         </div>
     </div>
 
     <script>
         const CLIENT_ID = "1528303618418151495";
         const REDIRECT_URI = "https://discord-clone-iota-three.vercel.app/";
-        
-        // Sostituisci questa stringa con il Token del Bot che crei sul Developer Portal
-        const BOT_TOKEN = "MTUyODMxMDEwMzU0MjA3NTQ5NQ.GQVIjS.vU5-MbfXDDsS-M9kA75wWL6dFNIxuJfAPySBJ0"; 
         
         let oauthToken = null;
 
@@ -213,8 +215,7 @@
         });
 
         document.getElementById('btn-login').addEventListener('click', () => {
-            // Chiediamo i permessi corretti per vedere i canali dei server a cui partecipi
-            const oauthUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=identify%20guilds%20guilds.channels.read`;
+            const oauthUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=identify%20guilds`;
             window.location.href = oauthUrl;
         });
 
@@ -228,14 +229,15 @@
         document.getElementById('btn-avvia').addEventListener('click', async () => {
             const idOrigine = document.getElementById('id-origine').value.trim();
             const idDestinazione = document.getElementById('id-destinazione').value.trim();
+            const botToken = document.getElementById('bot-token').value.trim();
 
-            if (!idOrigine || !idDestinazione) {
-                alert("Inserisci entrambi gli ID.");
+            if (!botToken) {
+                alert("Per favore, inserisci il Token del Bot.");
                 return;
             }
 
-            if (BOT_TOKEN === "IL_TUO_BOT_TOKEN_QUI") {
-                alert("Ricordati di inserire il Token del tuo Bot nel codice sorgente prima di avviare!");
+            if (!idOrigine || !idDestinazione) {
+                alert("Inserisci entrambi gli ID dei server.");
                 return;
             }
 
@@ -246,9 +248,8 @@
             const proxyUrl = "https://cors-anywhere.herokuapp.com/";
             const apiUrl = "https://discord.com/api/v10";
 
-            // Headers distinti per evitare i blocchi 403
             const headersUtente = { "Authorization": `Bearer ${oauthToken}`, "Content-Type": "application/json" };
-            const headersBot = { "Authorization": `Bot ${BOT_TOKEN}`, "Content-Type": "application/json" };
+            const headersBot = { "Authorization": `Bot ${botToken}`, "Content-Type": "application/json" };
 
             try {
                 scriviLog("Fase 1: Lettura canali tramite il tuo account...");
@@ -295,7 +296,7 @@
                 }
 
                 scriviLog("SUCCESSO: Server clonato interamente!");
-                alert("Fatto!");
+                alert("Clonazione completata!");
 
             } catch (err) {
                 scriviLog(`ERRORE: ${err.message}`);
