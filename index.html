@@ -47,13 +47,14 @@
         }
 
         .status-box {
-            background-color: rgba(88, 101, 242, 0.1);
-            border: 1px solid var(--accent-color);
+            background-color: rgba(244, 63, 94, 0.1);
+            border: 1px solid #f43f5e;
             border-radius: 8px;
             padding: 15px;
             margin-bottom: 20px;
-            font-size: 14px;
+            font-size: 13px;
             line-height: 1.5;
+            color: #fda4af;
         }
 
         .form-group {
@@ -96,23 +97,12 @@
             cursor: pointer;
             transition: background-color 0.2s, transform 0.1s;
             text-align: center;
-            text-decoration: none;
             box-sizing: border-box;
-        }
-
-        .btn-discord {
-            background-color: var(--accent-color);
-            color: #fff;
-        }
-
-        .btn-discord:hover {
-            background-color: var(--accent-hover);
         }
 
         .btn-clone {
             background-color: var(--success-color);
             color: #fff;
-            margin-top: 10px;
         }
 
         .btn-clone:hover {
@@ -123,8 +113,9 @@
             transform: scale(0.98);
         }
 
-        .hidden {
-            display: none;
+        .btn:disabled {
+            background-color: #4f545c;
+            cursor: not-allowed;
         }
 
         .log-box {
@@ -133,86 +124,53 @@
             font-family: monospace;
             padding: 15px;
             border-radius: 6px;
-            height: 150px;
+            height: 160px;
             overflow-y: auto;
             margin-top: 20px;
             font-size: 12px;
             border: 1px solid var(--border-color);
         }
 
-        .note {
-            font-size: 12px;
-            color: #72767d;
-            margin-top: 15px;
-            text-align: center;
-            line-height: 1.4;
+        .hidden {
+            display: none;
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>Configurazione</h1>
+        <h1>Server Cloner Pro</h1>
 
-        <!-- Sezione 1: Login -->
-        <div id="sezione-login">
-            <div class="status-box">
-                Fai il login per autorizzare il tool a leggere la struttura dal tuo account.
-            </div>
-            <button id="btn-login" class="btn btn-discord">Accedi con Discord</button>
+        <div class="status-box">
+            <strong>ATTENZIONE:</strong> Questo tool richiede il tuo Token Utente per leggere l'origine e un Bot Token per scrivere sulla destinazione. Non inserire mai i tuoi token su siti non tuoi.
         </div>
 
-        <!-- Sezione 2: Pannello -->
-        <div id="sezione-operativa" class="hidden">
-            <div class="status-box" style="border-color: var(--success-color); background-color: rgba(36, 128, 70, 0.1);">
-                <strong>Accesso verificato!</strong> Il tool userà la tua sessione web.
-            </div>
-
-            <div class="form-group">
-                <label for="bot-token">Token del Bot (Solo per Server Destinazione)</label>
-                <input type="password" id="bot-token" placeholder="Incolla il token del bot per scrivere">
-            </div>
-
-            <div class="form-group">
-                <label for="id-origine">ID Server Origine</label>
-                <input type="text" id="id-origine" value="1414516686664765603">
-            </div>
-
-            <div class="form-group">
-                <label for="id-destinazione">ID Server Destinazione</label>
-                <input type="text" id="id-destinazione" value="1528307371082776587">
-            </div>
-
-            <button id="btn-avvia" class="btn btn-clone">AVVIA CLONAZIONE</button>
-
-            <div id="console-log" class="log-box hidden"></div>
+        <div class="form-group">
+            <label for="user-token">Il tuo Token Utente (Lettura)</label>
+            <input type="password" id="user-token" placeholder="Incolla il tuo Token Personale">
         </div>
+
+        <div class="form-group">
+            <label for="bot-token">Token del Bot (Scrittura Destinazione)</label>
+            <input type="password" id="bot-token" placeholder="Incolla il Token del Bot">
+        </div>
+
+        <div class="form-group">
+            <label for="id-origine">ID Server Origine</label>
+            <input type="text" id="id-origine" placeholder="Inserisci ID Server Origine">
+        </div>
+
+        <div class="form-group">
+            <label for="id-destinazione">ID Server Destinazione</label>
+            <input type="text" id="id-destinazione" placeholder="Inserisci ID Server Destinazione">
+        </div>
+
+        <button id="btn-avvia" class="btn btn-clone">AVVIA CLONAZIONE</button>
+
+        <div id="console-log" class="log-box hidden"></div>
     </div>
 
     <script>
-        const CLIENT_ID = "1528303618418151495";
-        const REDIRECT_URI = "https://discord-clone-iota-three.vercel.app/";
-        let oauthToken = null;
-
-        window.addEventListener('DOMContentLoaded', () => {
-            const hash = window.location.hash;
-            if (hash) {
-                const params = new URLSearchParams(hash.substring(1));
-                oauthToken = params.get('access_token');
-                if (oauthToken) {
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                    document.getElementById('sezione-login').classList.add('hidden');
-                    document.getElementById('sezione-operativa').classList.remove('hidden');
-                }
-            }
-        });
-
-        document.getElementById('btn-login').addEventListener('click', () => {
-            // Estendiamo al massimo i permessi dell'applicazione web
-            const oauthUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=identify%20guilds%20guilds.members.read`;
-            window.location.href = oauthUrl;
-        });
-
         function scriviLog(messaggio) {
             const logBox = document.getElementById('console-log');
             logBox.classList.remove('hidden');
@@ -221,43 +179,45 @@
         }
 
         document.getElementById('btn-avvia').addEventListener('click', async () => {
+            const userToken = document.getElementById('user-token').value.trim();
+            const botToken = document.getElementById('bot-token').value.trim();
             const idOrigine = document.getElementById('id-origine').value.trim();
             const idDestinazione = document.getElementById('id-destinazione').value.trim();
-            const botToken = document.getElementById('bot-token').value.trim();
 
-            if (!botToken || !idOrigine || !idDestinazione) {
-                alert("Completa tutti i campi.");
+            if (!userToken || !botToken || !idOrigine || !idDestinazione) {
+                alert("Completa tutti i campi prima di procedere.");
                 return;
             }
 
-            document.getElementById('btn-avvia').disabled = true;
+            const btn = document.getElementById('btn-avvia');
+            btn.disabled = true;
             document.getElementById('console-log').innerHTML = "";
 
             const proxyUrl = "https://cors-anywhere.herokuapp.com/";
             const apiUrl = "https://discord.com/api/v10";
 
-            // Tentiamo l'autenticazione mista per bypassare i blocchi 403 di lettura
-            const headersUtente = { "Authorization": `Bearer ${oauthToken}`, "Content-Type": "application/json" };
+            // Headers distinti per utente (senza prefisso Bot) e bot (con prefisso Bot)
+            const headersUtente = { "Authorization": userToken, "Content-Type": "application/json" };
             const headersBot = { "Authorization": `Bot ${botToken}`, "Content-Type": "application/json" };
 
             try {
-                scriviLog("Fase 1: Connessione all'origine con credenziali web...");
+                scriviLog("Fase 1: Connessione all'origine tramite Token Utente...");
                 
-                // Proviamo ad aggirare l'endpoint standard chiedendo prima la validazione del server
                 const resOrigine = await fetch(`${proxyUrl}${apiUrl}/guilds/${idOrigine}/channels`, { headers: headersUtente });
                 
                 if (!resOrigine.ok) {
-                    throw new Error(`Blocco di sicurezza Discord (Status: ${resOrigine.status}).`);
+                    throw new Error(`Errore Lettura Origine (Status: ${resOrigine.status}). Verifica il tuo Token Utente.`);
                 }
 
                 const canali = await resOrigine.json();
-                scriviLog(`Ottimo! Trovati ${canali.length} canali.`);
+                scriviLog(`Successo! Trovati ${canali.length} canali da clonare.`);
 
-                // Da qui in poi scrive il bot sulla destinazione
+                // Divisione e ordinamento
                 const categorie = canali.filter(c => c.type === 4).sort((a,b) => a.position - b.position);
                 const altriCanali = canali.filter(c => c.type !== 4).sort((a,b) => a.position - b.position);
                 const mappaCategorie = {};
 
+                scriviLog("Fase 2: Creazione Categorie sulla destinazione...");
                 for (const cat of categorie) {
                     scriviLog(`Clonazione categoria: ${cat.name}`);
                     const resCat = await fetch(`${proxyUrl}${apiUrl}/guilds/${idDestinazione}/channels`, {
@@ -269,9 +229,10 @@
                         const nuovaCat = await resCat.json();
                         mappaCategorie[cat.id] = nuovaCat.id;
                     }
-                    await new Promise(r => setTimeout(r, 1000));
+                    await new Promise(r => setTimeout(r, 1000)); // Evita il rate limit
                 }
 
+                scriviLog("Fase 3: Creazione Canali di testo e vocali...");
                 for (const ch of altriCanali) {
                     scriviLog(`Clonazione canale: #${ch.name}`);
                     const payload = { name: ch.name, type: ch.type, position: ch.position, topic: ch.topic || "" };
@@ -286,14 +247,14 @@
                     await new Promise(r => setTimeout(r, 1000));
                 }
 
-                scriviLog("Clonazione completata!");
-                alert("Fatto!");
+                scriviLog("Clonazione completata con successo!");
+                alert("Processo terminato!");
 
             } catch (err) {
                 scriviLog(`Errore: ${err.message}`);
                 alert(err.message);
             } finally {
-                document.getElementById('btn-avvia').disabled = false;
+                btn.disabled = false;
             }
         });
     </script>
