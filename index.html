@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Utility Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #111827;
+            --text-color: #f3f4f6;
+            --text-muted: #9ca3af;
+            --primary: #5865F2;
+            --primary-hover: #4752c4;
+            --accent: #10b981;
+            --border: #1f2937;
+        }
+        body {
+            font-family: sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        }
+        h1 { font-size: 1.8rem; text-align: center; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+        .subtitle { text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 25px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; }
+        .label-desc { font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: -6px; margin-bottom: 8px; }
+        input[type="text"] { width: 100%; padding: 12px; background-color: #070a12; border: 1px solid var(--border); border-radius: 6px; color: #fff; box-sizing: border-box; font-size: 0.95rem; }
+        input[type="text"]:focus { outline: none; border-color: var(--primary); }
+        .btn-discord { display: block; text-align: center; padding: 12px; background-color: var(--primary); color: white; border-radius: 6px; font-weight: bold; text-decoration: none; margin-bottom: 20px; transition: background 0.2s; }
+        .btn-discord:hover { background-color: var(--primary-hover); }
+        .auth-status { font-size: 0.85rem; text-align: center; padding: 8px; background-color: rgba(16, 185, 129, 0.1); border: 1px solid var(--accent); color: var(--accent); border-radius: 6px; margin-bottom: 20px; display: none; }
+        .btn-submit { width: 100%; padding: 14px; background-color: transparent; border: 2px solid var(--primary); color: var(--primary); border-radius: 6px; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
+        .btn-submit:hover { background-color: var(--primary); color: white; }
+        .info-box { margin-top: 25px; padding: 15px; background-color: #070a12; border-left: 4px solid var(--primary); border-radius: 0 6px 6px 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Configurazione</h1>
+    <div class="subtitle">Imposta i parametri di clonazione</div>
+    
+    <div class="form-group">
+        <label>Autenticazione</label>
+        <a href="#" id="login-button" class="btn-discord">Accedi con Discord</a>
+        <div id="auth-status" class="auth-status">Connesso con successo!</div>
+    </div>
+    
+    <div class="form-group">
+        <label for="source-id">ID del Server di Origine</label>
+        <span class="label-desc">(Server da cui copiare)</span>
+        <input type="text" id="source-id" placeholder="Inserisci l'ID del server di origine">
+    </div>
+    
+    <div class="form-group">
+        <label for="dest-id">ID del Server di Destinazione</label>
+        <span class="label-desc">(Server su cui incollare)</span>
+        <input type="text" id="dest-id" placeholder="Inserisci l'ID del server di destinazione">
+    </div>
+    
+    <button type="button" class="btn-submit">Server Clone</button>
+
+    <div class="info-box">
+        <strong>Nota:</strong> Stai usando il flusso sicuro Discord OAuth2. Nessun token statico viene richiesto o salvato nel codice.
+    </div>
+</div>
+
+<script>
+    // ================= CONFIGURAZIONE =================
+    const CLIENT_ID = 'IL_TUO_CLIENT_ID_QUI'; 
+    
+    // Riconosce automaticamente il link del tuo sito su Vercel
+    const REDIRECT_URI = window.location.origin + window.location.pathname;
+    // ==================================================
+
+    const loginButton = document.getElementById('login-button');
+    const authStatus = document.getElementById('auth-status');
+    const submitButton = document.querySelector('.btn-submit');
+
+    // Genera il link di login ufficiale
+    loginButton.href = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=identify%20guilds`;
+
+    // Legge il token restituito da Discord dopo il login
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = hashParams.get('access_token');
+
+    if (accessToken) {
+        // Se l'utente si è loggato con successo
+        loginButton.style.display = 'none';
+        authStatus.style.display = 'block';
+        // Pulisce il token dall'URL visibile per ordine estetico
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    submitButton.addEventListener('click', () => {
+        if (!accessToken) {
+            alert("Devi prima effettuare l'accesso con Discord!");
+            return;
+        }
+        
+        const sourceId = document.getElementById('source-id').value;
+        const destId = document.getElementById('dest-id').value;
+
+        if (!sourceId || !destId) {
+            alert("Per favore, inserisci entrambi gli ID dei server.");
+            return;
+        }
+
+        // Il token e gli ID sono pronti per essere usati
+        alert(`Accesso Verificato!\n\nToken temporaneo ottenuto.\nPronto a elaborare i server:\nOrigine: ${sourceId}\nDestinazione: ${destId}`);
+    });
+</script>
+</body>
+</html>
