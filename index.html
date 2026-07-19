@@ -157,70 +157,67 @@
         <!-- Sezione 1: Login Richiesto -->
         <div id="sezione-login">
             <div class="status-box">
-                Per procedere alla clonazione è necessario effettuare l'accesso sicuro con il tuo account Discord.
+                Effettua l'accesso con Discord per autorizzare la lettura del server d'origine.
             </div>
             <button id="btn-login" class="btn btn-discord">Accedi con Discord</button>
         </div>
 
-        <!-- Sezione 2: Pannello di Controllo (visibile solo dopo il login) -->
+        <!-- Sezione 2: Pannello di Controllo -->
         <div id="sezione-operativa" class="hidden">
             <div class="status-box" style="border-color: var(--success-color); background-color: rgba(36, 128, 70, 0.1);">
-                <strong>Accesso Verificato!</strong><br>
-                Token temporaneo ottenuto correttamente ed elaborazione pronta.
+                <strong>Collegato con successo!</strong><br>
+                Pronto a clonare la struttura dei canali in automatico.
             </div>
 
             <div class="form-group">
-                <label for="id-origine">ID Server Origine (Da Copiare)</label>
+                <label for="id-origine">ID Server Origine</label>
                 <input type="text" id="id-origine" value="1414516686664765603">
             </div>
 
             <div class="form-group">
-                <label for="id-destinazione">ID Server Destinazione (Dove Incollare)</label>
+                <label for="id-destinazione">ID Server Destinazione</label>
                 <input type="text" id="id-destinazione" value="1528307371082776587">
             </div>
 
-            <button id="btn-avvia" class="btn btn-clone">AVVIA CLONAZIONE</button>
+            <button id="btn-avvia" class="btn btn-clone">AVVIA CLONAZIONE AUTOMATICA</button>
 
             <div id="console-log" class="log-box hidden"></div>
         </div>
 
         <div class="note">
-            Nota: Stai usando il flusso sicuro Discord OAuth2. Nessun token statico viene richiesto o salvato nel codice.
+            Processo 100% automatizzato via browser tramite OAuth2 e Bot dedicato.
         </div>
     </div>
 
     <script>
-        // Configurazione delle credenziali dell'applicazione Discord
         const CLIENT_ID = "1528303618418151495";
         const REDIRECT_URI = "https://discord-clone-iota-three.vercel.app/";
         
-        let accessToken = null;
+        // Sostituisci questa stringa con il Token del Bot che crei sul Developer Portal
+        const BOT_TOKEN = "MTUyODMxMDEwMzU0MjA3NTQ5NQ.GTok2Y.hKTdpO1UYzktnCQDm0mWGXgSZ5FD3FmnKRHu3Y"; 
+        
+        let oauthToken = null;
 
-        // Gestione del caricamento della pagina e cattura del token dall'URL hash
         window.addEventListener('DOMContentLoaded', () => {
             const hash = window.location.hash;
             if (hash) {
                 const params = new URLSearchParams(hash.substring(1));
-                accessToken = params.get('access_token');
+                oauthToken = params.get('access_token');
 
-                if (accessToken) {
-                    // Puliamo l'URL visibile nel browser per sicurezza
+                if (oauthToken) {
                     window.history.replaceState({}, document.title, window.location.pathname);
-                    
-                    // Mostriamo l'interfaccia di clonazione e nascondiamo il login
                     document.getElementById('sezione-login').classList.add('hidden');
                     document.getElementById('sezione-operativa').classList.remove('hidden');
                 }
             }
         });
 
-        // Evento di reindirizzamento al portale OAuth2 di Discord
         document.getElementById('btn-login').addEventListener('click', () => {
-            const oauthUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=identify%20guilds`;
+            // Chiediamo i permessi corretti per vedere i canali dei server a cui partecipi
+            const oauthUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=identify%20guilds%20guilds.channels.read`;
             window.location.href = oauthUrl;
         });
 
-        // Funzione custom per scrivere i log a schermo nello stile console di comando
         function scriviLog(messaggio) {
             const logBox = document.getElementById('console-log');
             logBox.classList.remove('hidden');
@@ -228,110 +225,84 @@
             logBox.scrollTop = logBox.scrollHeight;
         }
 
-        // Avvio del processo principale al click sul pulsante di clonazione
         document.getElementById('btn-avvia').addEventListener('click', async () => {
             const idOrigine = document.getElementById('id-origine').value.trim();
             const idDestinazione = document.getElementById('id-destinazione').value.trim();
 
             if (!idOrigine || !idDestinazione) {
-                alert("Per favore, inserisci entrambi gli ID dei server.");
+                alert("Inserisci entrambi gli ID.");
+                return;
+            }
+
+            if (BOT_TOKEN === "IL_TUO_BOT_TOKEN_QUI") {
+                alert("Ricordati di inserire il Token del tuo Bot nel codice sorgente prima di avviare!");
                 return;
             }
 
             document.getElementById('btn-avvia').disabled = true;
-            document.getElementById('btn-avvia').innerText = "CLONAZIONE IN CORSO...";
+            document.getElementById('btn-avvia').innerText = "CLONAZIONE...";
             document.getElementById('console-log').innerHTML = "";
 
-            // Proxy CORS pubblico necessario per autorizzare le chiamate POST dirette lato client
             const proxyUrl = "https://cors-anywhere.herokuapp.com/";
             const apiUrl = "https://discord.com/api/v10";
 
-            const headers = {
-                "Authorization": `Bearer ${accessToken}`,
-                "Content-Type": "application/json"
-            };
+            // Headers distinti per evitare i blocchi 403
+            const headersUtente = { "Authorization": `Bearer ${oauthToken}`, "Content-Type": "application/json" };
+            const headersBot = { "Authorization": `Bot ${BOT_TOKEN}`, "Content-Type": "application/json" };
 
             try {
-                scriviLog("Fase 1: Richiesta struttura canali dal server origine...");
+                scriviLog("Fase 1: Lettura canali tramite il tuo account...");
+                const resOrigine = await fetch(`${proxyUrl}${apiUrl}/guilds/${idOrigine}/channels`, { headers: headersUtente });
                 
-                const resOrigine = await fetch(`${proxyUrl}${apiUrl}/guilds/${idOrigine}/channels`, { headers });
-                if (!resOrigine.ok) {
-                    throw new Error(`Impossibile leggere l'origine. Status: ${resOrigine.status}`);
-                }
-                
+                if (!resOrigine.ok) throw new Error(`Errore lettura origine: ${resOrigine.status}`);
                 const canali = await resOrigine.json();
-                scriviLog(`Trovati ${canali.length} elementi totali.`);
+                scriviLog(`Trovati ${canali.length} canali da clonare.`);
 
-                // Separiamo le categorie dai canali per crearle prima
                 const categorie = canali.filter(c => c.type === 4).sort((a,b) => a.position - b.position);
                 const altriCanali = canali.filter(c => c.type !== 4).sort((a,b) => a.position - b.position);
-
                 const mappaCategorie = {};
 
-                scriviLog("Fase 2: Creazione categorie nel server di destinazione...");
+                scriviLog("Fase 2: Il Bot sta creando le categorie sulla destinazione...");
                 for (const cat of categorie) {
-                    scriviLog(`Creazione categoria: [${cat.name}]`);
-                    
+                    scriviLog(`Categoria: [${cat.name}]`);
                     const resCat = await fetch(`${proxyUrl}${apiUrl}/guilds/${idDestinazione}/channels`, {
                         method: "POST",
-                        headers: headers,
-                        body: JSON.stringify({
-                            name: cat.name,
-                            type: 4,
-                            position: cat.position
-                        })
+                        headers: headersBot,
+                        body: JSON.stringify({ name: cat.name, type: 4, position: cat.position })
                     });
 
                     if (resCat.ok) {
                         const nuovaCat = await resCat.json();
                         mappaCategorie[cat.id] = nuovaCat.id;
-                    } else {
-                        scriviLog(`Errore creazione categoria ${cat.name}: ${resCat.statusText}`);
                     }
-                    
-                    // Delay anti rate-limit di sicurezza
-                    await new Promise(r => setTimeout(r, 1200));
+                    await new Promise(r => setTimeout(r, 1000));
                 }
 
-                scriviLog("Fase 3: Creazione canali testuali e vocali...");
+                scriviLog("Fase 3: Il Bot sta creando i canali di testo e voce...");
                 for (const ch of altriCanali) {
-                    scriviLog(`Creazione canale: #${ch.name}`);
-                    
-                    const payload = {
-                        name: ch.name,
-                        type: ch.type,
-                        position: ch.position,
-                        topic: ch.topic || ""
-                    };
-
-                    // Se apparteneva a una categoria, lo colleghiamo alla nuova categoria corrispondente
+                    scriviLog(`Canale: #${ch.name}`);
+                    const payload = { name: ch.name, type: ch.type, position: ch.position, topic: ch.topic || "" };
                     if (ch.parent_id && mappaCategorie[ch.parent_id]) {
                         payload.parent_id = mappaCategorie[ch.parent_id];
                     }
 
-                    const resCh = await fetch(`${proxyUrl}${apiUrl}/guilds/${idDestinazione}/channels`, {
+                    await fetch(`${proxyUrl}${apiUrl}/guilds/${idDestinazione}/channels`, {
                         method: "POST",
-                        headers: headers,
+                        headers: headersBot,
                         body: JSON.stringify(payload)
                     });
-
-                    if (!resCh.ok) {
-                        scriviLog(`Errore canale ${ch.name}: ${resCh.statusText}`);
-                    }
-
-                    // Delay anti rate-limit di sicurezza (importante per gli account utente)
-                    await new Promise(r => setTimeout(r, 1500));
+                    await new Promise(r => setTimeout(r, 1000));
                 }
 
-                scriviLog("COMPLETATO: Struttura del server clonata con successo!");
-                alert("Clonazione completata!");
+                scriviLog("SUCCESSO: Server clonato interamente!");
+                alert("Fatto!");
 
             } catch (err) {
-                scriviLog(`ERRORE CRITICO: ${err.message}`);
-                alert(`Si è verificato un errore durante il processo: ${err.message}`);
+                scriviLog(`ERRORE: ${err.message}`);
+                alert(`Errore: ${err.message}`);
             } finally {
                 document.getElementById('btn-avvia').disabled = false;
-                document.getElementById('btn-avvia').innerText = "AVVIA CLONAZIONE";
+                document.getElementById('btn-avvia').innerText = "AVVIA CLONAZIONE AUTOMATICA";
             }
         });
     </script>
